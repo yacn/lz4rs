@@ -2,4 +2,10 @@
 
 name = "lz4rs"
 version = "0.0.1"
-authors = ["yacn <admin@yacn.me>"]
+authors = ["Isaac Boehman <idboehman@gmail.com>", "Anh Tran <panhtran249@gmail.com>"]
+build = "build.rs"
+
+[build-dependencies.gcc]
+version = "= 0.1.4"
+git = "https://github.com/alexcrichton/gcc-rs"
+rev = "f5c52d956e0742a66e40c8301e634e136c3ae287"
