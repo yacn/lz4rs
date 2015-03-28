@@ -1,0 +1,12 @@
+[root]
+name = "lz4rs"
+version = "0.0.1"
+dependencies = [
+ "gcc 0.1.4 (git+https://github.com/alexcrichton/gcc-rs?rev=f5c52d956e0742a66e40c8301e634e136c3ae287)",
+]
+
+[[package]]
+name = "gcc"
+version = "0.1.4"
+source = "git+https://github.com/alexcrichton/gcc-rs?rev=f5c52d956e0742a66e40c8301e634e136c3ae287#f5c52d956e0742a66e40c8301e634e136c3ae287"
+
