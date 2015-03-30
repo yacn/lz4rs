@@ -9,6 +9,7 @@ use collections::slice;
 
 use std::io;
 use std::mem;
+use std::ptr;
 use std::str;
 use std::io::fs::File;
 use std::io::IoError;
@@ -90,10 +91,6 @@ pub fn compress(src: &Path, dst: &Path) -> Result<(), IoError> {
 
 		println!("Compressing {:?} -> {:?}", src, dst);
 
-		//let buf_size: usize = 32 * 1024;
-
-		//let mut buf: [u8; buf_size] = [0; buf_size];
-
 		let mut src_file = try!(File::open(src));
 		let mut dst_file = try!(File::create(dst));
 
@@ -103,19 +100,11 @@ pub fn compress(src: &Path, dst: &Path) -> Result<(), IoError> {
 		let src_buf_size = fstat.size as usize;
 		println!("src_buf_size: {:?}", src_buf_size);
 
-		//let mut src_buf: [u8; src_buf_size] = [0; src_buf_size];
-		let mut src_buf: Vec<u8> = Vec::with_capacity(src_buf_size);
-		let mut src_buf_slice = src_buf.as_mut_slice();
-
-		//let read_len = try!(src_file.read(src_buf.as_mut_slice()));
-		//let read_len = try!(src_file.read(src_buf.as_mut_slice()));
-		match src_file.read(src_buf_slice) {
-			Ok(l) => println!("read {}", l),
-			Err(ref e) if e.kind == IoErrorKind::EndOfFile => {},
-			Err(e) => return Err(e),
-		}
+		let mut src_buf: Vec<u8> = try!(src_file.read_to_end());
 		println!("read src");
-		println!("src_buf ({:?}):\n{:?}", src_buf_slice.len(), src_buf_slice);
+		println!("src_buf ({:?})", src_buf.len());
+		println!("{:?}", src_buf.slice_to(5));
+
 
 		let preferences = LZ4F_preferences_t {
 			frameInfo: LZ4F_frameInfo_t {
@@ -130,31 +119,23 @@ pub fn compress(src: &Path, dst: &Path) -> Result<(), IoError> {
 			reserved: [0; 4],
 		};
 
-		//let maybe_err = unsafe { LZ4F_compressFrameBound(src_buf_size as size_t, &preferences) };
-		//let dst_max_size = try!(check_error(maybe_err));
 		let dst_max_size = try!(compress_frame_bound(src_buf_size, &preferences));
 		println!("got max size: {:?}", dst_max_size);
-		let mut dst_buf = Vec::with_capacity(dst_max_size);
+		let mut dst_buf: Vec<u8> = Vec::with_capacity(dst_max_size);
+
+		let psrc = src_buf.as_ptr();
+		let pdst = dst_buf.as_mut_ptr();
 
 		let maybe_err =
-			LZ4F_compressFrame(dst_buf.as_mut_ptr(), dst_max_size as size_t, src_buf_slice.as_ptr(), src_buf_size as size_t, &preferences);
+			LZ4F_compressFrame(pdst, dst_max_size as size_t, psrc, src_buf_size as size_t, ptr::null());
 
 		let compressed_len = try!(check_error(maybe_err));
 		println!("compressed frame: {:?}", compressed_len);
-		println!("dst_buf: {:?}", dst_buf);
+		dst_buf.set_len(compressed_len);
+		println!("dst_buf: {:?}", dst_buf.slice_to(2));
 
-		let r = try!(dst_file.write(dst_buf.as_slice()));
-		println!("wrote dst: {:?}", r);
-		Ok(r)
+		Ok(try!(dst_file.write(dst_buf.as_slice())))
 	}
-
-	/*let len = try!(file_in.read(&mut buf));
-
-	if len == 0 { return Err("read zero err".to_string()); }
-
-	while buf.len() > 0 {
-
-	}*/
 
 }
 
@@ -169,10 +150,7 @@ fn check_error(code: LZ4F_errorCode_t) -> Result<usize, IoError> {
 		if LZ4F_isError(code) != 0 {
 			let error_name: *const c_char = LZ4F_getErrorName(code);
 			let err_name_len = libc::strlen(error_name);
-			//let slice = mem::transmute(slice::from_raw_parts(error_name, err_name_len as usize + 1));
 			let slice = mem::transmute(slice::from_raw_buf(&error_name, err_name_len as usize + 1));
-			//let err_c_str_bytes = CString::from_ptr(error_name).to_bytes();
-			//let err_str = str::from_utf8(err_c_str_bytes).unwrap().to_string();
 			let err_str = str::from_utf8(slice).unwrap().to_string();
 			let e = IoError {
 				kind: IoErrorKind::OtherIoError,
@@ -184,52 +162,4 @@ fn check_error(code: LZ4F_errorCode_t) -> Result<usize, IoError> {
 	}
 	Ok(code as usize)
 }
-
-
-/*fn copy<R: Reader, W: Writer>(src: &mut R, dst: &mut W) -> Result<()> {
-	let buf_size: usize = 32 * 1024;
-
-	if len == 0 { break; }
-	//try!(dst.write_all(&buf[0..len]));
-	while buf.len() > 0 {
-		match dst.write(buf) {
-			Ok(0) => return Err("write zero err".to_string()),
-			//Ok(n) => buf = &buf[n..],
-			Ok(n) => buf = buf.slice_from(n),
-			Err(ref e) if e.kind() == ResourceUnavailable => {},
-			Err(e) => return Err(e),
-
-		}
-	}
-	Ok(())
-}*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
