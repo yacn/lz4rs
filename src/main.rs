@@ -1,3 +1,4 @@
+#![allow(unstable)]
 extern crate lz4rs;
 
 use std::os;
