@@ -12,6 +12,6 @@ fn main() {
 
 	for arg in os::args().tail().iter() {
 		//lz4rs::compress(&Path::new(arg), &Path::new(&(arg.to_string() + suffix))).unwrap();
-		lz4rs::decompress(&Path::new(arg), &Path::new(&arg[0..arg.len()-suffix.len()])).unwrap();
+		lz4rs::frame::decompress2(&Path::new(arg), &Path::new(&arg[0..arg.len()-suffix.len()])).unwrap();
 	}
 }
