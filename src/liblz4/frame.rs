@@ -77,6 +77,11 @@ pub struct LZ4F_decompressOptions_t {
 //  unsigned reserved[3];
 // } LZ4F_compressOptions_t;
 
+pub struct LZ4F_compressionOptions_t {
+	stableSrc: c_uint,
+	reserved: [c_uint; 3],
+}
+
 // #define LZ4F_VERSION 100
 extern {
 
@@ -90,12 +95,24 @@ extern {
 
 	//size_t LZ4F_compressFrameBound(size_t srcSize, const LZ4F_preferences_t* preferencesPtr);
 	pub fn LZ4F_compressFrameBound(srcSize: size_t, prefsPtr: *const LZ4F_preferences_t) -> size_t;
+	pub fn LZ4F_compressBound(srcSize: size_t, prefsPtr: *const LZ4F_preferences_t) -> size_t;
 
 	//size_t LZ4F_compressFrame(void* dstBuffer, size_t dstMaxSize, const void* srcBuffer, size_t srcSize, const LZ4F_preferences_t* preferencesPtr);
 	pub fn LZ4F_compressFrame(dstBuffer: *mut c_void, dstMaxSize: size_t, srcBuffer: *const c_void, srcSize: size_t, prefsPtr: *const LZ4F_preferences_t) -> size_t;
 
 	//LZ4F_errorCode_t LZ4F_createCompressionContext(LZ4F_compressionContext_t* cctxPtr, unsigned version);
 	fn LZ4F_createCompressionContext(cctxPtr: *mut c_void, version: c_uint) -> LZ4F_errorCode_t;
+	//LZ4F_errorCode_t LZ4F_freeCompressionContext(LZ4F_compressionContext_t cctx);
+	fn LZ4F_freeCompressionContext(cctx: LZ4F_compressionContext_t) -> LZ4F_errorCode_t;
+
+	//size_t LZ4F_compressBegin(LZ4F_compressionContext_t cctx, void* dstBuffer, size_t dstMaxSize, const LZ4F_preferences_t* prefsPtr);
+	fn LZ4F_compressBegin(cctx: LZ4F_compressionContext_t, dstBuffer: *mut c_void, dstMaxSize: size_t, prefsPtr: *const LZ4F_preferences_t) -> size_t;
+
+	//size_t LZ4F_compressUpdate(LZ4F_compressionContext_t cctx, void* dstBuffer, size_t dstMaxSize, const void* srcBuffer, size_t srcSize, const LZ4F_compressOptions_t* cOptPtr);
+	fn LZ4F_compressUpdate(cctx: LZ4F_compressionContext_t, dstBuffer: *mut c_void, dstMaxSize: size_t, srcBuffer: *const c_void, srcSize: size_t, cOptPtr: *const LZ4F_compressionOptions_t) -> size_t;
+
+	//size_t LZ4F_compressEnd(LZ4F_compressionContext_t cctx, void* dstBuffer, size_t dstMaxSize, const LZ4F_compressOptions_t* cOptPtr);
+	fn LZ4F_compressEnd(cctx: LZ4F_compressionContext_t)
 
 	// TODO
 	//LZ4F_errorCode_t LZ4F_freeCompressionContext(LZ4F_compressionContext_t cctx);

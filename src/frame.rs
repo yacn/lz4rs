@@ -3,8 +3,6 @@ extern crate collections;
 
 use libc::{size_t, c_char, c_void};
 
-
-
 use collections::slice;
 
 use std::mem;
@@ -111,6 +109,15 @@ fn compress_frame_bound(src_size: usize, preferences: &LZ4F_preferences_t) -> Re
 	check_error(maybe_err)
 }
 
+fn compress_bound(src_size: usize, preferences: Option<&LZ4F_preferences_t>) -> Result<usize, IoError> {
+
+	let maybe_err = match preferences {
+		Some(p) => unsafe { LZ4F_compressBound(src_size as size_t, p) },
+		None => unsafe { LZ4F_compressBound(src_size as size_t, ptr::null()) },
+	};
+	check_error(maybe_err)
+}
+
 fn is_error(code: LZ4F_errorCode_t) -> bool {
 	let result = unsafe { LZ4F_isError(code) };
 	result != 0
@@ -127,6 +134,38 @@ unsafe fn get_error_string(code: LZ4F_errorCode_t) -> String {
 	let emsg_ptr: *const c_char = LZ4F_getErrorName(code);
 	str_from_ptr(emsg_ptr)
 }
+
+/*
+struct Compressor<W> {
+	inner: W,
+	cctx: LZ4F_compressionContext_t,
+	buffer: Vec<u8>,
+	buf_offset: usize,
+}
+
+
+impl<W: Writer> Compressor<W> {
+	fn new(src: W, src_size: Option<usize>) -> Result<Compressor<W>, IoError> {
+		let srcsize: usize = src_size.unwrap_or(1024);
+		let max_compressed_size: usize = try!(compress_bound(srcsize, None));
+		let ctx: *mut c_void = ptr::null_mut();
+		unsafe { LZ4F_createCompressionContext(&mut ctx, LZ4F_VERSION); }
+
+		let buf: Vec<u8> = Vec::with_capacity(max_compressed_size);
+
+		unsafe {
+			LZ4F
+		}
+
+		Ok(Compressor {
+			inner: src,
+			cctx: ctx,
+			buffer: buf,
+			buf_offset: 0,
+		})
+	}
+}
+*/
 
 
 struct Decompressor<R> {
