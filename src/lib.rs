@@ -13,6 +13,6 @@ mod liblz4;
 pub mod frame;
 
 pub fn version() -> usize {
-	let result = unsafe { liblz4::core::LZ4_versionNumber() };
-	return result as usize;
+    let result = unsafe { liblz4::core::LZ4_versionNumber() };
+    return result as usize;
 }
