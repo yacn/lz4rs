@@ -38,7 +38,9 @@ use liblz4::frame::{
 
 };
 
-
+/// COMPRESS
+/// Input: path to the source file and path to the distant file
+/// Output: doesn't output anything but creates a compressed version of the file or throws an error
 pub fn compress(src: &Path, dst: &Path) -> Result<(), IoError> {
 
     println!("Compressing {:?} -> {:?}", src, dst);
@@ -90,6 +92,9 @@ pub fn compress(src: &Path, dst: &Path) -> Result<(), IoError> {
     Ok(try!(dst_file.write(dst_buf.as_slice())))
 }
 
+/// capture errors
+/// Input: Error code
+/// Output: usize if not an error, IoError otherwise
 fn check_error(code: LZ4F_errorCode_t) -> Result<usize, IoError> {
     println!("checking: {:?}", code);
     if is_error(code) {
@@ -104,11 +109,17 @@ fn check_error(code: LZ4F_errorCode_t) -> Result<usize, IoError> {
     }
 }
 
+/// get the minimum value of dstMaxSize
+/// Input: source size and preferences
+/// Output: usize if got the minimum value, otherwise error
 fn compress_frame_bound(src_size: usize, preferences: &LZ4F_preferences_t) -> Result<usize, IoError> {
     let maybe_err = unsafe { LZ4F_compressFrameBound(src_size as size_t, preferences) };
     check_error(maybe_err)
 }
 
+/// Provides the minimum size of Dst buffer given srcSize to handle worst case situations
+/// Input: source size and preferences
+/// Output: usize if got the minimum value, otherwise error
 fn compress_bound(src_size: usize, preferences: Option<&LZ4F_preferences_t>) -> Result<usize, IoError> {
 
     let maybe_err = match preferences {
@@ -118,11 +129,15 @@ fn compress_bound(src_size: usize, preferences: Option<&LZ4F_preferences_t>) -> 
     check_error(maybe_err)
 }
 
+///checks if the the code is an error
+/// Input: code
+/// Output: bool
 fn is_error(code: LZ4F_errorCode_t) -> bool {
     let result = unsafe { LZ4F_isError(code) };
     result != 0
 }
 
+/// TODO
 unsafe fn str_from_ptr(ptr: *const c_char) -> String {
     let len: usize = (libc::strlen(ptr) as usize) + 1;
     let char_slice: &[c_char] = slice::from_raw_buf(&ptr, len);
@@ -130,6 +145,9 @@ unsafe fn str_from_ptr(ptr: *const c_char) -> String {
     str::from_utf8(byte_slice).unwrap().to_string()
 }
 
+/// get error's name
+/// Input: code
+/// Output: error's name
 unsafe fn get_error_string(code: LZ4F_errorCode_t) -> String {
     let emsg_ptr: *const c_char = LZ4F_getErrorName(code);
     str_from_ptr(emsg_ptr)
@@ -167,6 +185,7 @@ impl<W: Writer> Compressor<W> {
 }
 */
 
+/// DECOMPRESSOR struct
 
 struct Decompressor<R> {
     inner: R,
@@ -177,6 +196,7 @@ struct Decompressor<R> {
     buf_offset: usize,
 }
 
+/// functions for Decpmpressor struct
 impl<R: Reader> Decompressor<R> {
     fn new(src: R, buf_size: Option<usize>) -> Decompressor<R> {
         let mut ctx: *mut c_void = ptr::null_mut();
@@ -199,6 +219,8 @@ impl<R: Reader> Decompressor<R> {
 }
 
 #[unsafe_destructor]
+/// implement trait Drop for Decompressor with LZ4F_freeDecompressionContext
+/// from lz4 library
 impl<R: Reader> ::std::ops::Drop for Decompressor<R> {
     fn drop(&mut self) {
         unsafe {
@@ -207,7 +229,12 @@ impl<R: Reader> ::std::ops::Drop for Decompressor<R> {
     }
 }
 
+/// implement trait Reader for Decompressor
 impl<R: Reader> Reader for Decompressor<R> {
+
+    /// read the decompressor
+    /// if the function reach the end of file then it returns an EOF error
+    /// otherwise, it returns current position
     fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
 
         if self.eof {
@@ -273,6 +300,8 @@ impl<R: Reader> Reader for Decompressor<R> {
     }
 }
 
+/// decompress the file
+/// uses Decompress struct
 pub fn decompress2(src: &Path, dst: &Path) -> Result<(), IoError> {
 
     let src_file = try!(File::open(src));
@@ -294,7 +323,8 @@ pub fn decompress2(src: &Path, dst: &Path) -> Result<(), IoError> {
     Ok(())
 }
 
-
+/// decompress the file
+/// uses lz4 C functions instead of Decompress struct
 pub fn decompress(src: &Path, dst: &Path) -> Result<(), IoError> {
 
     println!("Decompressing {:?} -> {:?}", src, dst);
